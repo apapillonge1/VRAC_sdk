@@ -16,7 +16,7 @@ Plan Planner::getPlan(Goal *goal, const QVariantMap& blackBoard)
 
 Plan Planner::findBestPlan(QVariantMap &desiredState, const QVariantMap& blackBoard)
 {
-    Node rootNode {.task = nullptr, .state = desiredState};
+    Node rootNode {.task = nullptr, .state = desiredState, .childrens = {}};
 
     if (buildPlans(rootNode, blackBoard))
     {
@@ -117,7 +117,8 @@ bool Planner::buildPlans(Node &step, const QVariantMap &blackBoard)
 
         Node newStep = {
             .task = task,
-            .state = desiredState
+            .state = desiredState,
+            .childrens = {}
         };
 
         if (desiredState.isEmpty() || buildPlans(newStep, blackBoard))
