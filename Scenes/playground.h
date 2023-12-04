@@ -1,46 +1,37 @@
-#ifndef PLAYGROUND_H
-#define PLAYGROUND_H
+#pragma once
 
 #include <QGraphicsScene>
 #include <QObject>
+#include <range/v3/all.hpp>
 
 #include "Scenes/obstacle.h"
 #include "Scenes/gameelement.h"
-#include "Avoidance/pathstep.h"
+#include "Avoidance/path_step.h"
 
 class Playground : public QGraphicsScene
 {
 public:
-    explicit Playground(QObject *parent = nullptr);
-    virtual ~Playground();
-
-    GameElement* popElement(QString groupName, GameElement *e);
-    GameElement* popElement(QString groupName, QString name);
-
-    const QMap<QString, QVector<GameElement*>> &elements() const { return mElements;}
-    QVector<GameElement*> getElementGroup(QString groupName) const;
-    GameElement* getClosestElement(QString groupName, QPointF currentPos);
-
-    const QVector<Obstacle>& obstacles() const {return mObstacles;}
-    const QVector<Obstacle>& staticObstacles() const {return mStaticObstacles;}
-    const QVector<PathStep>& path();
+    explicit Playground(QObject *parent = nullptr) : QGraphicsScene(parent) {}
+    virtual ~Playground() {
+    }
 
 public slots:
-    void clearElements();
-    void addElement(QString groupName, GameElement* element);
-    void removeElement(QString groupName, QString name);
 
-    void setObstacles(const QVector<Obstacle> &newObstacles);
-    void setStaticObstacles(const QVector<Obstacle> &newStaticObstacles);
-    void setPath(const QVector<PathStep>& newPath);
-    void popPathStep();
-    void updatePath();
+    void addElement(GameElement* element) {
+        addItem(element);
+    }
 
-private:
-    QMap<QString, QVector<GameElement*>> mElements;
-    QVector<Obstacle> mObstacles;
-    QVector<Obstacle> mStaticObstacles;
-    QVector<PathStep> mPath;
+    void onNewObstacles(const std::vector<Obstacle> &newObstacles) {
+        for (const auto & obstacle : newObstacles) {
+            addItem(obstacle.uiItem.get());
+
+            if (obstacle.uiItemAvoidance.get() != nullptr)
+                addItem(obstacle.uiItemAvoidance.get());
+        }
+    }
+
+    void onNewPath(const std::vector<PathStep>& path) {
+        for (const auto & newStep : path)
+            addItem(newStep.uiItem.get());
+    }
 };
-
-#endif // PLAYGROUND_H

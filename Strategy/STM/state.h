@@ -2,45 +2,86 @@
 #define __STATE_H
 
 #include <QObject>
-#include <QSet>
 #include <QVariant>
+#include <set>
+#include <functional>
+#include <range/v3/all.hpp>
 
 #include "event.h"
+#include "transition.h"
 
-class Transition;
-
-class State : public QObject
-{
+class state_signals_slots :  public QObject {
     Q_OBJECT
 public:
-    State(QString name);
-    State(QString name, QVariantMap params);
-
-    void addTransition(Transition *t) {mTransitions.insert(t);}
-    const QSet<Transition *> &transitions() const;
-    void setTransitions(const QSet<Transition *> &newTransitions);
-
-    void addParam(QString key, QVariant value) { mParams[key] = value;}
-    void setParams(const QVariantMap& newParams) { mParams = newParams; }
-    const QVariantMap& effects() const {return mParams;};
-
-    bool testCheckSum(uint16_t checkSum);
-    uint16_t checkSum();
+    explicit state_signals_slots(){
+        connect(this, &state_signals_slots::sendEvent, this, &state_signals_slots::onEvent, Qt::QueuedConnection);
+    }
 
 signals :
     void sendEvent(Event e);
 
 public slots:
-    virtual bool onEvent(Event);
-    virtual void onEntry(Event&) = 0;
-    virtual void onExit(Event&) = 0;
+    virtual std::vector<std::string> onEvent(Event e) = 0;
+};
+
+template<typename context_t, typename params_t>
+class state : public state_signals_slots
+{
+public:
+    using context_type = context_t;
+    using params_type = params_t;
+
+    state(std::string name) : state_signals_slots(), mCheckSum(std::hash<std::string>{}(name)) {
+       ;
+        setObjectName("[" + name + "]");
+        mCheckSum += (rand() %0xFFFF);
+    }
+
+    state(const std::string & name,  const params_t & params) : state_signals_slots(), mParams(params), mCheckSum(std::hash<std::string>{}(name)) {
+        setObjectName("[" + name + "]");
+        mCheckSum += (rand() %0xFFFF);
+    }
+
+    const std::vector<transition> &transitions() const { return mTransitions; }
+    void set_transitions(std::vector<transition> && newTransitions) { mTransitions = std::move(newTransitions); }
+
+    bool testCheckSum(uint16_t checkSum) {
+        if (checkSum == 0xFFFF) return true;
+
+        if (checkSum != mCheckSum ) return false;
+
+        if (mCheckCounter > 0) mCheckCounter--;
+
+        return (mCheckCounter == 0);
+    }
+
+    uint16_t checkSum() {
+        if (mCheckCounter == 0xFFFF) mCheckCounter = 0;
+
+        mCheckCounter++;
+        return mCheckSum;
+    }
+
+    virtual std::vector<std::string> onEvent(Event e) override {
+        return mTransitions
+               | ranges::views::filter([&](const auto & transition){
+                     return transition.event == e && testCheckSum(e.checksum);
+                    })
+                | ranges::views::transform([](const auto & transition) {
+                     return transition.target_state;
+                    })
+                | ranges::to<std::vector>;
+    }
+
+    virtual void onEntry(context_t &, Event) = 0;
+    virtual void onExit(context_t &, Event) {}
 
 protected:
-    QSet<Transition*> mTransitions;
-    QVariantMap mParams;
+    std::vector<transition> mTransitions;
+    params_t mParams;
 
-    uint16_t mCheckSum = 0xFFFF;
-    uint16_t mCheckCounter = 0xFFFF;
+    std::size_t mCheckSum = 0xFFFF;
+    std::size_t mCheckCounter = 0xFFFF;
 };
 
 #endif
