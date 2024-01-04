@@ -2,12 +2,12 @@
 
 #include "event.h"
 
-#include <fmtlog/fmtlog.h>
+//#include <fmtlog/fmtlog.h>
 #include <fmt/color.h>
 #include <range/v3/all.hpp>
 #include <QObject>
 #include <set>
-
+#include <QDebug>
 
 // TODO RAII Stm
 template<typename state_t>
@@ -33,6 +33,9 @@ public:
             delete state;
         }
     }
+    std::string get_name(){
+        return state_t::get_name();
+    }
 
     void start() {
         Event e{"NoEvent"};
@@ -50,7 +53,9 @@ public:
         current_states.clear();
         current_states.push_back(entry_state);
 
-        FMTLOG(fmtlog::INF, "Entering state machine {} -> {}", state_t::name, entry_state);
+        //FMTLOG(fmtlog::INF, "Entering state machine {} -> {}", state_t::name, entry_state);
+        QDebug(QtDebugMsg) << QString("Entering state machine %1 -> %2").arg(QString::fromStdString(state_t::name)).arg(QString::fromStdString(entry_state->get_name()));
+
         entry_state->on_entry(ctx,e);
         state_t::send_event(Event{"NoEvent"});
     }
@@ -84,11 +89,15 @@ public:
                              })
                            | ranges::to<std::vector>;
 
-        FMTLOG(fmtlog::INF, "{} {} {}",
-               fmt::format("{}",fmt::join(to_be_removed, "")),
-               fmt::format("--[{}]-->", e.value),
-               fmt::format("{}",fmt::join(to_be_added, ""))
-        );
+//        FMTLOG(fmtlog::INF, "{} {} {}",
+//               fmt::format("{}",fmt::join(to_be_removed, "")),
+//               fmt::format("--[{}]-->", e.value),
+//               fmt::format("{}",fmt::join(to_be_added, ""))
+//        );
+        QDebug(QtDebugMsg) << QString("%1 %2 %3")
+                                  .arg(QString::fromStdString(fmt::format("{}", fmt::join(to_be_removed, ""))))
+                                  .arg(QString::fromStdString(fmt::format("--[{}]-->", e.value)))
+                                  .arg(QString::fromStdString(fmt::format("{}", fmt::join(to_be_added, ""))));
 
         ranges::for_each(to_be_removed, [&](auto *state){
             state->on_exit(ctx, e);

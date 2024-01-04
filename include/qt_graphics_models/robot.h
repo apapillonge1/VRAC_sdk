@@ -5,9 +5,9 @@
 
 class robot_graphic_item : public QObject, public QGraphicsPixmapItem
 {
-    Q_OBJECT
 public:
-    robot_graphic_item() { setFlags(QGraphicsItem::ItemIsMovable); }
+    explicit robot_graphic_item() { setFlags(QGraphicsItem::ItemIsMovable); }
+    virtual ~robot_graphic_item(){}
 
     void setPos(QPointF pos) { QGraphicsPixmapItem::setPos(pos - boundingRect().center()); }
     QPointF pos() { return sceneBoundingRect().center(); }
@@ -22,7 +22,7 @@ public:
     QGraphicsItem* getItemHandler(QString name) { return mItemHandlers[name].get(); }
 
 signals :
-    void posChanged(QPointF);
+    void posChanged(QPointF){}
 
     protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override {

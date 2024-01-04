@@ -8,6 +8,6 @@ struct transition {
     Event event;
 };
 
-constexpr bool event_test(const transition & transition, const Event & e) {
+static bool event_test(const transition & transition, const Event & e) {
     return (transition.event == e);
 }
